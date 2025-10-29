@@ -2,8 +2,8 @@ import React, { Component } from "react";
 import { Text, FlatList, View } from "react-native";
 import { ScrollView } from "react-native-virtualized-view";
 import { Card, ListItem, Avatar } from "react-native-elements";
-import { LEADERS } from "../shared/leaders";
-
+//import { LEADERS } from '../shared/leader';
+import { baseUrl } from '../shared/baseUrl';
 class RenderHistory extends Component {
   render() {
     return (
@@ -50,29 +50,39 @@ class RenderLeadership extends Component {
           <ListItem.Content>
             <ListItem.Title style={{ fontWeight: "bold" }}>
               {item.name}
+              <Avatar rounded source={{ uri: baseUrl + item.image }} />
             </ListItem.Title>
             <ListItem.Subtitle>{item.description}</ListItem.Subtitle>
           </ListItem.Content>
         </View>
+        
       </ListItem>
     );
   }
 }
 
+// redux
+import { connect } from 'react-redux';
+const mapStateToProps = (state) => {
+  return {
+    leaders: state.leaders
+  }
+};
+
 class About extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      leaders: LEADERS,
-    };
+    // this.state = {
+    //   leaders: LEADERS,
+    // };
   }
   render() {
     return (
       <ScrollView>
         <RenderHistory />
-        <RenderLeadership leaders={this.state.leaders} />
+       <RenderLeadership leaders={this.props.leaders.leaders} />
       </ScrollView>
     );
   }
 }
-export default About;
+export default connect(mapStateToProps)(About);

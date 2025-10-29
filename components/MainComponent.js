@@ -4,6 +4,12 @@ import { Icon, Image } from 'react-native-elements';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
+// redux
+import { connect } from 'react-redux';
+import { fetchLeaders } from '../redux/ActionCreators';
+const mapDispatchToProps = (dispatch) => ({
+  fetchLeaders: () => dispatch(fetchLeaders())
+});
 
 import Home from './HomeComponent';
 function HomeNavigatorScreen() {
@@ -147,6 +153,11 @@ class Main extends Component {
         <MainNavigatorScreen />
       </NavigationContainer>
     );
-  }
+    }
+    componentDidMount() {
+    // redux
+    this.props.fetchLeaders();
+   }
+ 
 }
-export default Main;
+export default connect(null, mapDispatchToProps)(Main);
