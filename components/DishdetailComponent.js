@@ -5,11 +5,15 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  Button,
   Alert,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
 } from "react-native";
-import { ScrollView } from "react-native-virtualized-view";
-import { Card, Image, Icon, Rating, Input } from "react-native-elements";
+import { ScrollView as VirtualizedScrollView } from "react-native-virtualized-view";
+import { Card, Image, Icon, Rating } from "react-native-elements";
 import { baseUrl } from "../shared/baseUrl";
 
 class RenderComments extends Component {
@@ -209,7 +213,7 @@ class Dishdetail extends Component {
 
     return (
       <React.Fragment>
-        <ScrollView>
+        <VirtualizedScrollView>
           <RenderDish
             dish={dish}
             favorite={favorite}
@@ -217,7 +221,7 @@ class Dishdetail extends Component {
             onPressComment={() => this.toggleModal()}
           />
           <RenderComments comments={comments} />
-        </ScrollView>
+        </VirtualizedScrollView>
 
         <Modal
           animationType="slide"
@@ -225,56 +229,125 @@ class Dishdetail extends Component {
           visible={this.state.showModal}
           onRequestClose={() => this.toggleModal()}
         >
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Add Your Comment</Text>
-            
-            <Rating
-              showRating
-              ratingCount={5}
-              minValue={1}
-              startingValue={this.state.rating}
-              onFinishRating={(rating) => this.setState({ rating: rating })}
-              style={{ paddingVertical: 10 }}
-            />
-            
-            <Text style={styles.ratingText}>
-              Selected: {this.state.rating} {this.state.rating === 1 ? 'star' : 'stars'}
-            </Text>
-            
-            <Input
-              placeholder="Author"
-              leftIcon={{ type: "font-awesome", name: "user-o" }}
-              onChangeText={(value) => this.setState({ author: value })}
-              value={this.state.author}
-              containerStyle={styles.formInput}
-            />
-            
-            <Input
-              placeholder="Comment"
-              leftIcon={{ type: "font-awesome", name: "comment-o" }}
-              onChangeText={(value) => this.setState({ comment: value })}
-              value={this.state.comment}
-              containerStyle={styles.formInput}
-              multiline
-              numberOfLines={4}
-            />
-            
-            <View style={styles.modalButton}>
-              <Button
-                onPress={() => this.handleComment(dishId)}
-                color="#512DA8"
-                title="Submit"
-              />
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={0}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Your Comment</Text>
+                <Icon
+                  name="close"
+                  type="font-awesome"
+                  color="#fff"
+                  size={24}
+                  onPress={() => this.toggleModal()}
+                  containerStyle={styles.closeIcon}
+                />
+              </View>
+              
+              <ScrollView 
+                style={styles.modalContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+              >
+                <View style={styles.ratingSection}>
+                  <Text style={styles.sectionLabel}>Your Rating</Text>
+                  <Rating
+                    showRating
+                    ratingCount={5}
+                    minValue={1}
+                    startingValue={this.state.rating}
+                    onFinishRating={(rating) => this.setState({ rating: rating })}
+                    style={styles.ratingComponent}
+                    ratingBackgroundColor="#f0f0f0"
+                  />
+                  <Text style={styles.ratingText}>
+                    {this.state.rating} {this.state.rating === 1 ? 'Star' : 'Stars'} Selected
+                  </Text>
+                </View>
+                
+                <View style={styles.inputSection}>
+                  <Text style={styles.sectionLabel}>Your Name</Text>
+                  <View style={styles.textInputWrapper}>
+                    <Icon
+                      name="user-o"
+                      type="font-awesome"
+                      color="#512DA8"
+                      size={20}
+                      containerStyle={styles.textInputIcon}
+                    />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter your name"
+                      placeholderTextColor="#999"
+                      onChangeText={(value) => this.setState({ author: value })}
+                      value={this.state.author}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                    />
+                  </View>
+                </View>
+                
+                <View style={styles.inputSection}>
+                  <Text style={styles.sectionLabel}>Your Comment</Text>
+                  <View style={[styles.textInputWrapper, styles.textAreaWrapper]}>
+                    <Icon
+                      name="comment-o"
+                      type="font-awesome"
+                      color="#512DA8"
+                      size={20}
+                      containerStyle={styles.textInputIcon}
+                    />
+                    <TextInput
+                      style={[styles.textInput, styles.textArea]}
+                      placeholder="Share your thoughts about this dish..."
+                      placeholderTextColor="#999"
+                      onChangeText={(value) => this.setState({ comment: value })}
+                      value={this.state.comment}
+                      multiline
+                      numberOfLines={4}
+                      returnKeyType="done"
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+              
+              <View style={styles.modalFooter}>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity 
+                    style={[styles.button, styles.buttonCancel]}
+                    onPress={() => this.toggleModal()}
+                  >
+                    <Icon
+                      name="times"
+                      type="font-awesome"
+                      color="#666"
+                      size={18}
+                      containerStyle={styles.buttonIcon}
+                    />
+                    <Text style={styles.buttonTextCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.button, styles.buttonSubmit]}
+                    onPress={() => this.handleComment(dishId)}
+                  >
+                    <Icon
+                      name="check"
+                      type="font-awesome"
+                      color="#fff"
+                      size={18}
+                      containerStyle={styles.buttonIcon}
+                    />
+                    <Text style={styles.buttonTextSubmit}>Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-            
-            <View style={styles.modalButton}>
-              <Button
-                onPress={() => this.toggleModal()}
-                color="gray"
-                title="Cancel"
-              />
-            </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       </React.Fragment>
     );
@@ -286,32 +359,150 @@ class Dishdetail extends Component {
 }
 
 const styles = StyleSheet.create({
-  modal: {
-    justifyContent: "center",
-    margin: 20,
-    marginTop: 50,
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    backgroundColor: '#512DA8',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    backgroundColor: '#512DA8',
-    textAlign: 'center',
     color: 'white',
+    flex: 1,
+  },
+  closeIcon: {
+    padding: 5,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  ratingSection: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 20,
-    padding: 10
+    alignItems: 'center',
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  ratingComponent: {
+    paddingVertical: 15,
   },
   ratingText: {
     fontSize: 16,
-    textAlign: 'center',
     color: '#512DA8',
-    marginBottom: 10,
-    fontWeight: 'bold'
+    marginTop: 10,
+    fontWeight: 'bold',
   },
-  formInput: {
-    marginBottom: 10,
+  inputSection: {
+    marginBottom: 20,
   },
-  modalButton: {
-    marginVertical: 10,
+  textInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    minHeight: 50,
+  },
+  textAreaWrapper: {
+    alignItems: 'flex-start',
+    minHeight: 100,
+    paddingVertical: 10,
+  },
+  textInputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 8,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  inputContainer: {
+    paddingHorizontal: 0,
+  },
+  inputInnerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  inputText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    backgroundColor: '#f9f9f9',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  buttonCancel: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  buttonSubmit: {
+    backgroundColor: '#512DA8',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  buttonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  buttonTextSubmit: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
