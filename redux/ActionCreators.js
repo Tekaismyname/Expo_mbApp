@@ -73,7 +73,53 @@ const commentsFailed = (errmess) => ({
   payload: errmess,
 });
 
-// promotions
+//Comment
+export const postComment = (dishId, rating, author, comment) => (dispatch) => {
+  const newComment = {
+    dishId: dishId,
+    rating: rating,
+    author: author,
+    comment: comment,
+    date: new Date().toISOString()
+  };
+
+  // Thêm comment vào Redux store ngay lập tức (optimistic update)
+  setTimeout(() => {
+    dispatch(addComment(newComment));
+  }, 1000);
+
+  // Post comment lên server
+  return fetch(baseUrl + 'comments', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newComment)
+  })
+  .then((response) => {
+    if (!response.ok) {
+      throw Error('Error ' + response.status + ': ' + response.statusText);
+    }
+    return response.json();
+  })
+  .then((response) => {
+    // Server sẽ trả về comment với ID đã được tạo
+    // Bạn có thể dispatch một action khác nếu cần update lại comment với ID từ server
+    console.log('Comment posted to server:', response);
+  })
+  .catch((error) => {
+    console.error('Post comment failed:', error.message);
+    dispatch(commentsFailed(error.message));
+  });
+};
+
+const addComment = (comment) => ({
+  type: ActionTypes.ADD_COMMENT,
+  payload: comment
+});
+// =======
+
+
 // promotions
 export const fetchPromos = () => (dispatch) => {
   dispatch(promosLoading());
