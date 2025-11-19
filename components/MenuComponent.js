@@ -1,29 +1,44 @@
 import React, { Component } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, View, Text } from "react-native";
 import { ListItem, Avatar } from "react-native-elements";
 //import Dishdetail from './DishdetailComponent';
-import { DISHES } from "../shared/dishes";
+// import { DISHES } from "../shared/dishes";
+import { baseUrl } from "../shared/baseUrl";
+import Loading from "./LoadingComponent";
 
+// redux
+import { connect } from "react-redux";
+const mapStateToProps = (state) => {
+  return {
+    dishes: state.dishes,
+  };
+};
 
 class Menu extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      //selectedDish: null,
-      dishes: DISHES,
-    };
+    // this.state = {
+    //   selectedDish: null,
+    //   dishes: DISHES,
+    // };
   }
   render() {
-    return (
-      //   <View style={{flex: 1}}>
-      <FlatList
-        data={this.state.dishes}
-        renderItem={({ item, index }) => this.renderMenuItem(item, index)}
-        keyExtractor={(item) => item.id.toString()}
-      />
-      //  <Dishdetail dish={this.state.selectedDish}/>
-      //   </View>
-    );
+    if (this.props.dishes.isLoading) {
+      return <Loading />;
+    } else if (this.props.dishes.errMess) {
+      return <Text>{this.props.dishes.errMess}</Text>;
+    } else {
+      return (
+        //   <View style={{flex: 1}}>
+        <FlatList
+          data={this.props.dishes.dishes}
+          renderItem={({ item, index }) => this.renderMenuItem(item, index)}
+          keyExtractor={(item) => item.id.toString()}
+        />
+        //  <Dishdetail dish={this.state.selectedDish}/>
+        //   </View>
+      );
+    }
   }
 
   renderMenuItem(item, index) {
@@ -34,19 +49,7 @@ class Menu extends Component {
         onPress={() => navigate("Dishdetail", { dishId: item.id })}
       >
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Avatar
-            source={
-              item.image === 'images/zucchipakoda.png'
-                ? require('./images/zucchipakoda.png')
-                : item.image === 'images/vadonut.png'
-                ? require('./images/vadonut.png')
-                : item.image === 'images/uthappizza.png'
-                ? require('./images/uthappizza.png')
-                : item.image === 'images/elaicheesecake.png'
-                ? require('./images/elaicheesecake.png')
-                : require('./images/uthappizza.png')
-            }
-          />
+          <Avatar source={{ uri: baseUrl + item.image }} />
           <ListItem.Content style={{ marginLeft: 10 }}>
             <ListItem.Title>{item.name}</ListItem.Title>
             <ListItem.Subtitle>{item.description}</ListItem.Subtitle>
@@ -60,4 +63,4 @@ class Menu extends Component {
   //     this.setState({ selectedDish: item });
   //   }
 }
-export default Menu;
+export default connect(mapStateToProps)(Menu);

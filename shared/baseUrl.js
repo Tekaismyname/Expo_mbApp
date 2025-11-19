@@ -1,1 +1,1 @@
-export const baseUrl = 'https://<domain_name>/';
+export const baseUrl = "https://hkd-mb-render-com.onrender.com/";
