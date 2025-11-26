@@ -5,6 +5,9 @@ import { Card, ListItem, Avatar } from "react-native-elements";
 //import { LEADERS } from '../shared/leaders';
 import { baseUrl } from "../shared/baseUrl";
 import Loading from "./LoadingComponent";
+
+// Import animatable package
+import * as Animatable from 'react-native-animatable'
 class RenderHistory extends Component {
   render() {
     return (
@@ -113,12 +116,17 @@ class About extends Component {
   render() {
     return (
       <ScrollView>
-        <RenderHistory />
-        <RenderLeadership
+        <Animatable.View animation='fadeInDown' duration={2000} deplay={1000}>
+          <RenderHistory />
+        </Animatable.View>
+        <Animatable.View animation='fadeInUp' duration={2000} deplay={1000}>
+          <RenderLeadership
           leaders={this.props.leaders.leaders}
           isLoading={this.props.leaders.isLoading}
           errMess={this.props.leaders.errMess}
         />
+        </Animatable.View>
+        
       </ScrollView>
     );
   }

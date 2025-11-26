@@ -75,20 +75,16 @@ const commentsFailed = (errmess) => ({
 
 //Comment
 export const postComment = (dishId, rating, author, comment) => (dispatch) => {
+  // Tạo comment object với thứ tự field chuẩn
   const newComment = {
     dishId: dishId,
     rating: rating,
-    author: author,
     comment: comment,
+    author: author,
     date: new Date().toISOString()
   };
 
-  // Thêm comment vào Redux store ngay lập tức (optimistic update)
-  setTimeout(() => {
-    dispatch(addComment(newComment));
-  }, 1000);
-
-  // Post comment lên server
+  // POST comment lên server
   return fetch(baseUrl + 'comments', {
     method: 'POST',
     headers: {
@@ -102,17 +98,29 @@ export const postComment = (dishId, rating, author, comment) => (dispatch) => {
     }
     return response.json();
   })
-  .then((response) => {
-    // Server sẽ trả về comment với ID đã được tạo
-    // Bạn có thể dispatch một action khác nếu cần update lại comment với ID từ server
-    console.log('Comment posted to server:', response);
+  .then((responseComment) => {
+    // Server trả về comment với ID đã được tạo
+    // Dispatch comment này vào Redux store
+    console.log('Comment posted successfully:', responseComment);
+    
+    // Delay 1 giây rồi thêm vào store (như yêu cầu bài tập)
+    setTimeout(() => {
+      dispatch(addComment(responseComment));
+    }, 1000);
   })
   .catch((error) => {
     console.error('Post comment failed:', error.message);
     dispatch(commentsFailed(error.message));
+    
+    // Nếu lỗi, vẫn thêm comment vào Redux (offline mode)
+    // Tạo ID tạm thời
+    const offlineComment = {
+      ...newComment,
+      id: Date.now() // ID tạm thời
+    };
+    dispatch(addComment(offlineComment));
   });
 };
-
 const addComment = (comment) => ({
   type: ActionTypes.ADD_COMMENT,
   payload: comment
@@ -155,5 +163,10 @@ export const postFavorite = (dishId) => (dispatch) => {
 };
 const addFavorite = (dishId) => ({
   type: ActionTypes.ADD_FAVORITE,
+  payload: dishId
+});
+
+export const deleteFavorite = (dishId) => ({
+  type: ActionTypes.DELETE_FAVORITE,
   payload: dishId
 });

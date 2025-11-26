@@ -11,20 +11,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  PanResponder,
 } from "react-native";
 import { ScrollView as VirtualizedScrollView } from "react-native-virtualized-view";
 import { Card, Image, Icon, Rating } from "react-native-elements";
 import { baseUrl } from "../shared/baseUrl";
+import * as Animatable from "react-native-animatable";
 
 class RenderComments extends Component {
   render() {
     const comments = this.props.comments;
-    
+
     // Sắp xếp comment mới nhất lên đầu (theo date giảm dần)
     const sortedComments = [...comments].sort((a, b) => {
       return new Date(b.date) - new Date(a.date);
     });
-    
+
     return (
       <Card>
         <Card.Title>Comments</Card.Title>
@@ -40,14 +42,14 @@ class RenderComments extends Component {
   // Format date từ ISO sang dạng dễ đọc
   formatDate(dateString) {
     const date = new Date(dateString);
-    const options = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    const options = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString("en-US", options);
   }
 
   renderCommentItem(item, index) {
@@ -69,47 +71,105 @@ class RenderComments extends Component {
 }
 
 class RenderDish extends Component {
+  constructor(props) {
+    super(props);
+    this.handleViewRef = (ref) => (this.view = ref);
+  }
   render() {
+    // gesture
+    const recognizeDrag = ({ moveX, moveY, dx, dy }) => {
+      if (dx < -200) {
+        return 1; // right to left
+      } else if (dx > 200) {
+        return 2;
+      }
+      return 0;
+    };
+    const panResponder = PanResponder.create({
+      onStartShouldSetPanResponder: (e, gestureState) => {
+        return true;
+      },
+      onPanResponderGrant: () => {
+        // Có thể thêm hiệu ứng lúc bắt đầu chạm vào nếu muốn
+        this.view.wobble(1000)
+      },
+      onPanResponderEnd: (e, gestureState) => {
+        if (recognizeDrag(gestureState) === 1) {
+          Alert.alert(
+            "Add Favorite",
+            "Are you sure you wish to add " + dish.name + " to favorite?",
+            [
+              {
+                text: "Cancel",
+                onPress: () => {
+                  /* nothing */
+                },
+              },
+              {
+                text: "OK",
+                onPress: () => {
+                  this.props.favorite
+                    ? alert("Already favorite")
+                    : this.props.onPressFavorite();
+                  // Hiệu ứng nảy khi like thành công
+                  if (!this.props.favorite) this.view.wobble(1000);
+                },
+              },
+            ]
+          );
+        }
+        if (recognizeDrag(gestureState) === 2) {
+          // Thêm hiệu ứng lắc (shake) trước khi mở modal cho đẹp
+          this.view.shake(800).then((endState) => {
+            this.props.onPressComment();
+          });
+        }
+        return true;
+      },
+    });
+
     const dish = this.props.dish;
     if (dish != null) {
       return (
-        <Card>
-          <Image
-            source={{ uri: baseUrl + dish.image }}
-            style={{
-              width: "100%",
-              height: 100,
-              flexGrow: 1,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Card.FeaturedTitle>{dish.name}</Card.FeaturedTitle>
-          </Image>
-          <Text style={{ margin: 10 }}>{dish.description}</Text>
-          <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            <Icon
-              raised
-              reverse
-              type="font-awesome"
-              color="#f50"
-              name={this.props.favorite ? "heart" : "heart-o"}
-              onPress={() =>
-                this.props.favorite
-                  ? alert("Already favorite")
-                  : this.props.onPressFavorite()
-              }
-            />
-            <Icon
-              raised
-              reverse
-              type="font-awesome"
-              color="#512DA8"
-              name="pencil"
-              onPress={() => this.props.onPressComment()}
-            />
-          </View>
-        </Card>
+        <Animatable.View ref={this.handleViewRef} {...panResponder.panHandlers}>
+          <Card>
+            <Image
+              source={{ uri: baseUrl + dish.image }}
+              style={{
+                width: "100%",
+                height: 100,
+                flexGrow: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Card.FeaturedTitle>{dish.name}</Card.FeaturedTitle>
+            </Image>
+            <Text style={{ margin: 10 }}>{dish.description}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+              <Icon
+                raised
+                reverse
+                type="font-awesome"
+                color="#f50"
+                name={this.props.favorite ? "heart" : "heart-o"}
+                onPress={() =>
+                  this.props.favorite
+                    ? alert("Already favorite")
+                    : this.props.onPressFavorite()
+                }
+              />
+              <Icon
+                raised
+                reverse
+                type="font-awesome"
+                color="#512DA8"
+                name="pencil"
+                onPress={() => this.props.onPressComment()}
+              />
+            </View>
+          </Card>
+        </Animatable.View>
       );
     }
     return <View />;
@@ -161,30 +221,26 @@ class Dishdetail extends Component {
     // Validation: Kiểm tra rating phải từ 1-5
     if (this.state.rating < 1 || this.state.rating > 5) {
       Alert.alert(
-        'Invalid Rating',
-        'Please select a rating between 1 and 5 stars.',
-        [{ text: 'OK' }]
+        "Invalid Rating",
+        "Please select a rating between 1 and 5 stars.",
+        [{ text: "OK" }]
       );
       return;
     }
 
     // Validation: Kiểm tra author không để trống
-    if (this.state.author.trim() === '') {
-      Alert.alert(
-        'Missing Author',
-        'Please enter your name.',
-        [{ text: 'OK' }]
-      );
+    if (this.state.author.trim() === "") {
+      Alert.alert("Missing Author", "Please enter your name.", [
+        { text: "OK" },
+      ]);
       return;
     }
 
     // Validation: Kiểm tra comment không để trống
-    if (this.state.comment.trim() === '') {
-      Alert.alert(
-        'Missing Comment',
-        'Please enter your comment.',
-        [{ text: 'OK' }]
-      );
+    if (this.state.comment.trim() === "") {
+      Alert.alert("Missing Comment", "Please enter your comment.", [
+        { text: "OK" },
+      ]);
       return;
     }
 
@@ -195,10 +251,10 @@ class Dishdetail extends Component {
       this.state.author,
       this.state.comment
     );
-    
+
     // Reset form trước
     this.resetForm();
-    
+
     // Sau đó đóng modal
     this.toggleModal();
   }
@@ -214,13 +270,18 @@ class Dishdetail extends Component {
     return (
       <React.Fragment>
         <VirtualizedScrollView>
-          <RenderDish
-            dish={dish}
-            favorite={favorite}
-            onPressFavorite={() => this.markFavorite(dishId)}
-            onPressComment={() => this.toggleModal()}
-          />
-          <RenderComments comments={comments} />
+          <Animatable.View animation="fadeInDown" duration={1000} delay={500}>
+            <RenderDish
+              dish={dish}
+              favorite={favorite}
+              onPressFavorite={() => this.markFavorite(dishId)}
+              onPressComment={() => this.toggleModal()}
+            />
+          </Animatable.View>
+
+          <Animatable.View animation="fadeInDown" duration={1000} delay={500}>
+            <RenderComments comments={comments} />
+          </Animatable.View>
         </VirtualizedScrollView>
 
         <Modal
@@ -229,8 +290,8 @@ class Dishdetail extends Component {
           visible={this.state.showModal}
           onRequestClose={() => this.toggleModal()}
         >
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
             keyboardVerticalOffset={0}
           >
@@ -246,8 +307,8 @@ class Dishdetail extends Component {
                   containerStyle={styles.closeIcon}
                 />
               </View>
-              
-              <ScrollView 
+
+              <ScrollView
                 style={styles.modalContent}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
@@ -259,15 +320,18 @@ class Dishdetail extends Component {
                     ratingCount={5}
                     minValue={1}
                     startingValue={this.state.rating}
-                    onFinishRating={(rating) => this.setState({ rating: rating })}
+                    onFinishRating={(rating) =>
+                      this.setState({ rating: rating })
+                    }
                     style={styles.ratingComponent}
                     ratingBackgroundColor="#f0f0f0"
                   />
                   <Text style={styles.ratingText}>
-                    {this.state.rating} {this.state.rating === 1 ? 'Star' : 'Stars'} Selected
+                    {this.state.rating}{" "}
+                    {this.state.rating === 1 ? "Star" : "Stars"} Selected
                   </Text>
                 </View>
-                
+
                 <View style={styles.inputSection}>
                   <Text style={styles.sectionLabel}>Your Name</Text>
                   <View style={styles.textInputWrapper}>
@@ -289,10 +353,12 @@ class Dishdetail extends Component {
                     />
                   </View>
                 </View>
-                
+
                 <View style={styles.inputSection}>
                   <Text style={styles.sectionLabel}>Your Comment</Text>
-                  <View style={[styles.textInputWrapper, styles.textAreaWrapper]}>
+                  <View
+                    style={[styles.textInputWrapper, styles.textAreaWrapper]}
+                  >
                     <Icon
                       name="comment-o"
                       type="font-awesome"
@@ -304,7 +370,9 @@ class Dishdetail extends Component {
                       style={[styles.textInput, styles.textArea]}
                       placeholder="Share your thoughts about this dish..."
                       placeholderTextColor="#999"
-                      onChangeText={(value) => this.setState({ comment: value })}
+                      onChangeText={(value) =>
+                        this.setState({ comment: value })
+                      }
                       value={this.state.comment}
                       multiline
                       numberOfLines={4}
@@ -314,10 +382,10 @@ class Dishdetail extends Component {
                   </View>
                 </View>
               </ScrollView>
-              
+
               <View style={styles.modalFooter}>
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.button, styles.buttonCancel]}
                     onPress={() => this.toggleModal()}
                   >
@@ -330,8 +398,8 @@ class Dishdetail extends Component {
                     />
                     <Text style={styles.buttonTextCancel}>Cancel</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={[styles.button, styles.buttonSubmit]}
                     onPress={() => this.handleComment(dishId)}
                   >
@@ -352,7 +420,7 @@ class Dishdetail extends Component {
       </React.Fragment>
     );
   }
-  
+
   markFavorite(dishId) {
     this.props.postFavorite(dishId);
   }
@@ -361,26 +429,26 @@ class Dishdetail extends Component {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   modalHeader: {
-    backgroundColor: '#512DA8',
+    backgroundColor: "#512DA8",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
     flex: 1,
   },
   closeIcon: {
@@ -391,43 +459,43 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   ratingSection: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8f8f8",
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   sectionLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 12,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   ratingComponent: {
     paddingVertical: 15,
   },
   ratingText: {
     fontSize: 16,
-    color: '#512DA8',
+    color: "#512DA8",
     marginTop: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   inputSection: {
     marginBottom: 20,
   },
   textInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     paddingHorizontal: 12,
     minHeight: 50,
   },
   textAreaWrapper: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
     minHeight: 100,
     paddingVertical: 10,
   },
@@ -437,72 +505,72 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
     paddingVertical: 8,
   },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   inputContainer: {
     paddingHorizontal: 0,
   },
   inputInnerContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   inputText: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   modalFooter: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    backgroundColor: '#f9f9f9',
+    borderTopColor: "#e0e0e0",
+    backgroundColor: "#f9f9f9",
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
   },
   button: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
   buttonCancel: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   buttonSubmit: {
-    backgroundColor: '#512DA8',
+    backgroundColor: "#512DA8",
   },
   buttonIcon: {
     marginRight: 8,
   },
   buttonTextCancel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: "600",
+    color: "#666",
   },
   buttonTextSubmit: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });
 
