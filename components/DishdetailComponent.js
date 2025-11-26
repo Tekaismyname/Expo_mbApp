@@ -91,7 +91,7 @@ class RenderDish extends Component {
       },
       onPanResponderGrant: () => {
         // Có thể thêm hiệu ứng lúc bắt đầu chạm vào nếu muốn
-        this.view.wobble(1000)
+        // this.view.wobble(1000)
       },
       onPanResponderEnd: (e, gestureState) => {
         if (recognizeDrag(gestureState) === 1) {
@@ -316,6 +316,8 @@ class Dishdetail extends Component {
                 <View style={styles.ratingSection}>
                   <Text style={styles.sectionLabel}>Your Rating</Text>
                   <Rating
+                    type="star"
+                    imageSize={30}
                     showRating
                     ratingCount={5}
                     minValue={1}
@@ -324,7 +326,7 @@ class Dishdetail extends Component {
                       this.setState({ rating: rating })
                     }
                     style={styles.ratingComponent}
-                    ratingBackgroundColor="#f0f0f0"
+                    ratingBackgroundColor="f8f8f8"
                   />
                   <Text style={styles.ratingText}>
                     {this.state.rating}{" "}
