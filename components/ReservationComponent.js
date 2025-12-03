@@ -1,178 +1,249 @@
 import React, { Component } from "react";
 import {
-  Platform,
-  StyleSheet,
-  View,
   ScrollView,
+  View,
   Text,
   Switch,
   Button,
-  Modal,
-  SafeAreaView,
+  Alert,
+  StyleSheet,
 } from "react-native";
 import { Icon } from "react-native-elements";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DropDownPicker from "react-native-dropdown-picker";
+import { Calendar } from "react-native-calendars";
+import * as Animatable from "react-native-animatable";
 import { format } from "date-fns";
-
-class ModalContent extends Component {
-  render() {
-    return (
-      <View style={styles.modal}>
-        <Text style={styles.modalTitle}>Your Reservation</Text>
-        <Text style={styles.modalText}>
-          Number of Guests: {this.props.guests}
-        </Text>
-        <Text style={styles.modalText}>
-          Smoking?: {this.props.smoking ? "Yes" : "No"}
-        </Text>
-        <Text style={styles.modalText}>
-          Date and Time: {format(this.props.date, "dd/MM/yyyy - HH:mm")}
-        </Text>
-        <Button
-          title="Close"
-          color="#7cc"
-          onPress={() => this.props.onPressClose()}
-        />
-      </View>
-    );
-  }
-}
 
 class Reservation extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      guests: 1,
+      guests: "1",
       smoking: false,
       date: new Date(),
-      showDatePicker: false,
-      showModal: false,
+      showCalendar: false,
+      open: false,
+      markedDates: {},
+      items: [
+        { label: "1", value: "1" },
+        { label: "2", value: "2" },
+        { label: "3", value: "3" },
+        { label: "4", value: "4" },
+        { label: "5", value: "5" },
+        { label: "6", value: "6" },
+      ],
     };
   }
+
+  // Khi chọn ngày
+  onDayPress = (day) => {
+    const selectedDate = new Date(day.timestamp);
+    this.setState({
+      date: selectedDate,
+      showCalendar: false,
+      markedDates: {
+        [day.dateString]: {
+          selected: true,
+          selectedColor: "#7cc",
+          selectedTextColor: "#fff",
+        },
+      },
+    });
+  };
+
+  // Reset form
+  resetForm = () => {
+    this.setState({
+      guests: "1",
+      smoking: false,
+      date: new Date(),
+      markedDates: {},
+    });
+  };
+
+  // Xử lý đặt bàn
+  handleReservation = () => {
+    const { guests, smoking, date } = this.state;
+
+    Alert.alert(
+      "Confirm Reservation",
+      `Guests: ${guests}\nSmoking: ${smoking ? "Yes" : "No"}\nDate: ${format(
+        date,
+        "dd/MM/yyyy"
+      )}\n\nProceed with booking?`,
+      [
+        { text: "Cancel",
+          onPress: () => {
+            Alert.alert("Cancelled!", "Your table has been cancel successfully!", this.resetForm());
+          }, },
+        {
+          text: "OK",
+          onPress: () => {
+            Alert.alert("Booked!", "Your table has been reserved successfully!", [
+              { text: "Great!", onPress: this.resetForm },
+            ]);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   render() {
+    const { date, showCalendar, markedDates } = this.state;
+
     return (
       <ScrollView>
-        <View style={styles.formRow}>
-          <Text style={styles.formLabel}>Number of Guests</Text>
-          <Picker
-            style={styles.formItem}
-            itemStyle={Platform.OS === "ios" ? { color: "#000" } : null} // iOS wheel
-            selectedValue={this.state.guests}
-            onValueChange={(value) => this.setState({ guests: value })}
-          >
-            <Picker.Item label="1" value="1" />
-            <Picker.Item label="2" value="2" />
-            <Picker.Item label="3" value="3" />
-            <Picker.Item label="4" value="4" />
-            <Picker.Item label="5" value="5" />
-            <Picker.Item label="6" value="6" />
-          </Picker>
-        </View>
-        <View style={styles.formRow}>
-          <Text style={styles.formLabel}>Smoking/No-Smoking?</Text>
-          <Switch
-            style={styles.formItem}
-            value={this.state.smoking}
-            onValueChange={(value) => this.setState({ smoking: value })}
-          />
-        </View>
-        <View style={styles.formRow}>
-          <Text style={styles.formLabel}>Date and Time</Text>
-          <Icon
-            name="schedule"
-            size={36}
-            onPress={() => this.setState({ showDatePicker: true })}
-          />
-          <Text style={{ marginLeft: 10 }}>
-            {format(this.state.date, "dd/MM/yyyy - HH:mm")}
-          </Text>
-          <DateTimePickerModal
-            mode="datetime"
-            themeVariant="light"
-            isDarkModeEnabled={false}
-            isVisible={this.state.showDatePicker}
-            onConfirm={(date) =>
-              this.setState({ date: date, showDatePicker: false })
-            }
-            onCancel={() => this.setState({ showDatePicker: false })}
-          />
-        </View>
-        <View style={styles.formRow}>
-          <Button
-            title="Reserve"
-            color="#7cc"
-            onPress={() => this.handleReservation()}
-          />
-        </View>
-        <Modal
-          animationType={"slide"}
-          visible={this.state.showModal}
-          onRequestClose={() => this.setState({ showModal: false })}
-        >
-          <ModalContent
-            guests={this.state.guests}
-            smoking={this.state.smoking}
-            date={this.state.date}
-            onPressClose={() => this.setState({ showModal: false })}
-          />
-        </Modal>
+        <Animatable.View animation="zoomIn" duration={1000}>
+          {/* Number of Guests */}
+          <View style={[styles.formRow, { zIndex: 5000 }]}>
+            <Text style={styles.formLabel}>Number of Guests</Text>
+          <View style={{ flex: 1 }}>
+            <DropDownPicker
+              open={this.state.open}
+              value={this.state.guests}
+              items={this.state.items}
+              setOpen={(open) => this.setState({ open })}
+              setValue={(cb) =>
+                this.setState((state) => ({
+                  guests: cb(state.guests),
+                }))
+              }
+              setItems={(cb) =>
+                this.setState((state) => ({
+                  items: cb(state.items),
+                }))
+              }
+              placeholder="Select guests"
+              listMode="SCROLLVIEW"      // ⭐ QUAN TRỌNG – KHÔNG GÂY LỖI NỮA
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                height: 40,
+              }}
+              dropDownContainerStyle={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+              }}
+            />
+          </View>
+          </View>
+
+          {/* Smoking */}
+          <View style={styles.formRow}>
+            <Text style={styles.formLabel}>Smoking/Non-Smoking?</Text>
+            <Switch
+              value={this.state.smoking}
+              onValueChange={(value) => this.setState({ smoking: value })}
+              trackColor={{ true: "#7cc" }}
+              thumbColor={this.state.smoking ? "#7cc" : "#f4f3f4"}
+            />
+          </View>
+
+          {/* Date + Calendar */}
+          <View style={styles.formRow}>
+            <Text style={styles.formLabel}>Date</Text>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+              <Icon
+                name="calendar-today"
+                type="material"
+                color="#7cc"
+                size={36}
+                onPress={() => this.setState({ showCalendar: true })}
+              />
+              <Text style={{ marginLeft: 15, fontSize: 17 }}>
+                {format(date, "dd/MM/yyyy")}
+              </Text>
+            </View>
+          </View>
+
+          {/* Calendar Popup */}
+          {showCalendar && (
+            <View style={styles.calendarContainer}>
+              <Calendar
+                onDayPress={this.onDayPress}
+                markedDates={markedDates}
+                minDate={new Date()}
+                theme={{
+                  backgroundColor: "#ffffff",
+                  calendarBackground: "#ffffff",
+                  textSectionTitleColor: "#b6c1cd",
+                  selectedDayBackgroundColor: "#7cc",
+                  selectedDayTextColor: "#ffffff",
+                  todayTextColor: "#7cc",
+                  dayTextColor: "#2d4150",
+                  textDisabledColor: "#d9e1e8",
+                  arrowColor: "#7cc",
+                  monthTextColor: "#7cc",
+                  textDayFontWeight: "500",
+                  textMonthFontWeight: "bold",
+                  textDayHeaderFontWeight: "600",
+                }}
+              />
+              <Button title="Close" color="#999" onPress={() => this.setState({ showCalendar: false })} />
+            </View>
+          )}
+
+          {/* Reserve Button */}
+          <View style={styles.formRow}>
+            <View style={styles.reserveButton}>
+              <Button title="Reserve Table" color="#7cc" onPress={this.handleReservation} />
+            </View>
+          </View>
+        </Animatable.View>
       </ScrollView>
     );
   }
-  handleReservation() {
-    //alert(JSON.stringify(this.state));
-    this.setState({ showModal: true });
-  }
 }
-export default Reservation;
 
 const styles = StyleSheet.create({
   formRow: {
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
     flexDirection: "row",
     margin: 20,
   },
-  formLabel: { fontSize: 18, flex: 2 },
-  formItem: { flex: 1 },
-  //   modal: { justifyContent: 'center', margin: 20 },
-  //   modalTitle: { fontSize: 24, fontWeight: 'bold', backgroundColor: '#7cc', textAlign: 'center', color: 'white', marginBottom: 20 },
-  //   modalText: { fontSize: 18, margin: 10 }
-  modal: {
-    flex: 1, // Make modal fill the full screen
-    justifyContent: "center", // Center vertically
-    alignItems: "center", // Center horizontally
-    backgroundColor: "#fff", // Solid white background for clarity
-    marginHorizontal: 20, // Left-right margin for spacing on big screens
-    marginVertical: 60, // Top-bottom margin (avoids notch & bottom area)
-    borderRadius: 20, // Rounded corners for a cleaner modal
-    padding: 20, // Inner padding for content spacing
-    shadowColor: "#000", // Subtle shadow
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 6, // Android shadow
-  },
-
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    backgroundColor: "#7cc",
-    textAlign: "center",
-    color: "white",
-    paddingVertical: 12, // Add padding inside the title bar
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    width: "100%", // Stretch title bar across modal width
-    marginBottom: 20,
-  },
-
-  modalText: {
+  formLabel: {
     fontSize: 18,
-    marginVertical: 8,
-    textAlign: "center",
-    color: "#333", // Slightly softer black for readability
+    flex: 2,
+    fontWeight: "600",
+  },
+  dropdown: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    height: 40,
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+  },
+  calendarContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 12,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    overflow: "hidden",
+  },
+  reserveButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.37,
+    shadowRadius: 10,
+    backgroundColor: "rgba(16, 17, 17, 1)", // nền chính
+    // Gradient hiệu ứng (tùy chọn, đẹp hơn nữa)
+    backgroundColor: "transparent",
   },
 });
+
+export default Reservation;
